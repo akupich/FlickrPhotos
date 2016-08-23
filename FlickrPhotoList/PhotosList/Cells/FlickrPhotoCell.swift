@@ -19,6 +19,7 @@ class FlickrPhotoCell: UITableViewCell {
         super.prepareForReuse()
         
         FlickrPhotosAPI.sharedInstance.removeFlickrPhoto(self.flickrPhoto)
+        flickrPhoto = nil
         roundedView.image = nil
         titleLabel.text = ""
     }
@@ -40,5 +41,13 @@ class FlickrPhotoCell: UITableViewCell {
         }
         
         titleLabel.text = flickrPhoto.title
+        switch (flickrPhoto.state){
+        case .Downloaded:
+            activityIndicator.stopAnimating()
+        case .Failed:
+            activityIndicator.stopAnimating()
+        case .New:
+            activityIndicator.startAnimating()
+        }
     }
 }

@@ -15,9 +15,13 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        self.title = "Flicker Photos"
-        
+
         dataSource = PhotosDataSource(tableView: tableView)
+    }
+    
+    override func viewDidAppear(animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        dataSource?.loadImagesForVisibleCells()
     }
 }

@@ -31,29 +31,32 @@ public class TemporaryFileManager  {
         }
     }
     
-    public func fileExistWithTitle (title:String) -> Bool {
+    public func fileExistWithID (title:String) -> Bool {
         let fileManager = NSFileManager.defaultManager()
-        return
-            fileManager.fileExistsAtPath(temporaryDirectoryURL.URLByAppendingPathComponent(title + Constants.fpImageExtension).path!)
+        if let path = URLBuilder.localFlickrURL(withId: title).path {
+            return fileManager.fileExistsAtPath(path)
+        } else {
+            return false
+        }
     }
     
-    public func writeTemporaryFile(data:NSData, title:String, fn:TempFileWriteCompletionHandler) {
+    public func writeTemporaryFile(data:NSData, title:String, fn:TempFileWriteCompletionHandler?) {
         dispatch_user_initiated {
             do {
-                let fileURL = self.temporaryDirectoryURL.URLByAppendingPathComponent(title + Constants.fpImageExtension)
+                let fileURL = URLBuilder.localFlickrURL(withId: title)
                 try data.writeToURL(fileURL, options: NSDataWritingOptions.DataWritingAtomic)
                 print ("WRITE PATH: \(fileURL)")
-                dispatch_main { fn(result:{return fileURL}) }
+                dispatch_main { fn?(result:{return fileURL}) }
             } catch let error as NSError {
                 print("Error writing data to url \(error.localizedFailureReason)")
-                dispatch_main { fn(result:{throw error}) }
+                dispatch_main { fn?(result:{throw error}) }
             }
         }
     }
     
     public func writeSynchronousTemporaryFile(data:NSData, title:String) throws -> NSURL {
         do {
-            let fileURL = self.temporaryDirectoryURL.URLByAppendingPathComponent(title)
+            let fileURL = URLBuilder.localFlickrURL(withId: title)
             
             try data.writeToURL(fileURL, options: NSDataWritingOptions.DataWritingWithoutOverwriting)
             print ("WRITE PATH: \(fileURL)")
@@ -73,19 +76,19 @@ public class TemporaryFileManager  {
         }
     }
     
-    public func deleteTemporaryFile(url:NSURL, fn:TempFileWipeCompletionHandler) {
+    public func deleteTemporaryFile(url:NSURL, fn:TempFileWipeCompletionHandler?) {
         dispatch_user_initiated {
             do {
                 try NSFileManager.defaultManager().removeItemAtURL(url)
                 print("Successfully deleted file at url \(url) temporary files")
-                dispatch_main { fn(result: {}) }
+                dispatch_main { fn?(result: {}) }
             } catch let error as NSError {
                 print(error.localizedDescription)
-                dispatch_main { fn(result:{throw error}) }
+                dispatch_main { fn?(result:{throw error}) }
             }
         }
     }
-    public func deleteTemporaryFiles(fn:TempFileWipeCompletionHandler) {
+    public func deleteTemporaryFiles(fn:TempFileWipeCompletionHandler?) {
         dispatch_user_initiated {
             do {
                 try NSFileManager.defaultManager().removeItemAtURL(self.temporaryDirectoryURL)
@@ -95,10 +98,10 @@ public class TemporaryFileManager  {
                     print("Error creating temporary directory \(error.localizedDescription)")
                 }
                 print("Successfully deleted all temporary files")
-                dispatch_main { fn(result: {}) }
+                dispatch_main { fn?(result: {}) }
             } catch let error as NSError {
                 print(error.localizedDescription)
-                dispatch_main { fn(result:{throw error}) }
+                dispatch_main { fn?(result:{throw error}) }
             }
         }
     }

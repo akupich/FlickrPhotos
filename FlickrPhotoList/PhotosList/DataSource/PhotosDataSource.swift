@@ -30,19 +30,60 @@ class PhotosDataSource : NSObject, UITableViewDelegate, UITableViewDataSource {
         let flickrPhoto = FlickrPhotosAPI.sharedInstance.flickrPhotoAtIndexPath(indexPath)
         cell.updateWithFlickrPhoto(flickrPhoto)
         
-        switch (flickrPhoto.state){
-        case .Downloaded:
-            cell.activityIndicator.stopAnimating()
-        case .Failed:
-            cell.activityIndicator.stopAnimating()
-        case .New:
-            cell.activityIndicator.startAnimating()
-            if (!tableView.dragging && !tableView.decelerating) {
-                startDownloadForFlickrPhoto(flickrPhoto, indexPath: indexPath)
+        return cell
+    }
+    
+    func scrollViewWillBeginDragging(scrollView: UIScrollView) {
+        suspendAllOperations()
+    }
+    
+    func scrollViewDidEndDragging(scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate {
+            loadImagesForVisibleCells()
+            resumeAllOperations()
+        }
+    }
+    
+    func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
+        loadImagesForVisibleCells()
+        resumeAllOperations()
+    }
+    
+    
+    func suspendAllOperations () {
+        pendingOperations.downloadQueue.suspended = true
+    }
+    
+    func resumeAllOperations () {
+        pendingOperations.downloadQueue.suspended = false
+    }
+    
+    func loadImagesForVisibleCells () {
+        if let visiblePaths = tableView.indexPathsForVisibleRows {
+            let allPendingOpKeys = Set(pendingOperations.downloadsInProgress.keys)
+            
+            var toBeCancelledOpKeys = allPendingOpKeys
+            let visiblePaths = Set(visiblePaths)
+            toBeCancelledOpKeys.subtractInPlace(visiblePaths)
+            
+            var toBeStartedOpKeys = visiblePaths
+            toBeStartedOpKeys.subtractInPlace(allPendingOpKeys)
+            
+            for opKey in toBeCancelledOpKeys {
+                if let pendingDownload = pendingOperations.downloadsInProgress[opKey] {
+                    pendingDownload.cancel()
+                }
+                pendingOperations.downloadsInProgress.removeValueForKey(opKey)
+            }
+            
+            for opKey in toBeStartedOpKeys {
+                let indexPath = opKey as NSIndexPath
+                let photoToProcess = FlickrPhotosAPI.sharedInstance.flickrPhotoAtIndexPath(indexPath)
+                if photoToProcess.state != .Downloaded {
+                    startDownloadForFlickrPhoto(photoToProcess, indexPath: indexPath)
+                }
             }
         }
-        
-        return cell
     }
     
     func startDownloadForFlickrPhoto(flickrPhoto: FlickrPhoto, indexPath: NSIndexPath){
@@ -62,58 +103,5 @@ class PhotosDataSource : NSObject, UITableViewDelegate, UITableViewDataSource {
         }
         pendingOperations.downloadsInProgress[indexPath] = downloader
         pendingOperations.downloadQueue.addOperation(downloader)
-    }
-    
-    func scrollViewWillBeginDragging(scrollView: UIScrollView) {
-        suspendAllOperations()
-    }
-    
-    func scrollViewDidEndDragging(scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        if !decelerate {
-            loadImagesForOnscreenCells()
-            resumeAllOperations()
-        }
-    }
-    
-    func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
-        loadImagesForOnscreenCells()
-        resumeAllOperations()
-    }
-    
-    
-    func suspendAllOperations () {
-        pendingOperations.downloadQueue.suspended = true
-    }
-    
-    func resumeAllOperations () {
-        pendingOperations.downloadQueue.suspended = false
-    }
-    
-    func loadImagesForOnscreenCells () {
-        if let pathsArray = tableView.indexPathsForVisibleRows {
-            let allPendingOperations = Set(pendingOperations.downloadsInProgress.keys)
-            
-            var toBeCancelled = allPendingOperations
-            let visiblePaths = Set(pathsArray)
-            toBeCancelled.subtractInPlace(visiblePaths)
-            
-            var toBeStarted = visiblePaths
-            toBeStarted.subtractInPlace(allPendingOperations)
-            
-            for indexPath in toBeCancelled {
-                if let pendingDownload = pendingOperations.downloadsInProgress[indexPath] {
-                    pendingDownload.cancel()
-                }
-                pendingOperations.downloadsInProgress.removeValueForKey(indexPath)
-            }
-            
-            for indexPath in toBeStarted {
-                let indexPath = indexPath as NSIndexPath
-                let photoToProcess = FlickrPhotosAPI.sharedInstance.flickrPhotoAtIndexPath(indexPath)
-                if photoToProcess.state != .Downloaded {
-                    startDownloadForFlickrPhoto(photoToProcess, indexPath: indexPath)
-                }
-            }
-        }
     }
 }

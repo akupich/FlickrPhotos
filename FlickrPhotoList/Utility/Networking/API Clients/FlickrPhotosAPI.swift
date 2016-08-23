@@ -8,15 +8,13 @@
 
 import UIKit
 
-class FlickrPhotosAPI: NSObject {
+class FlickrPhotosAPI {
     private let flickrPhotosStorage: FlickrPhotoStorage
     
     static let sharedInstance = FlickrPhotosAPI()
     
-    override init() {
+    init() {
         flickrPhotosStorage = FlickrPhotoStorage()
-        
-        super.init()
     }
     
     class func remoteImageSyncForFlickrPhoto (photo: FlickrPhoto, imageSize: CGSize? = nil) -> NSData? {
@@ -39,10 +37,10 @@ class FlickrPhotosAPI: NSObject {
         if let flickrPhoto = flickrPhotosStorage.getPhotoAtIndexPath(indexPath) {
             return flickrPhoto
         } else {
-            let urlStr = "\(Constants.flickrServerURL)/\(Int(Constants.defaultPhotoSize.width))/\(Int(Constants.defaultPhotoSize.height))/\(indexPath.row)"
-            let flickrPhoto = FlickrPhoto (title: "\(indexPath.row)", url: NSURL(string: urlStr)!, ID: indexPath.toString())
-            if TemporaryFileManager.sharedInstance.fileExistWithTitle(flickrPhoto.ID) {
-                flickrPhoto.localImageUrl = TemporaryFileManager.sharedInstance.temporaryDirectoryURL.URLByAppendingPathComponent(flickrPhoto.ID + Constants.fpImageExtension)
+            let url = URLBuilder.remoteFlickrURL(withId: "\(indexPath.row)")
+            let flickrPhoto = FlickrPhoto (title: "\(indexPath.row)", url: url, ID: indexPath.toString())
+            if TemporaryFileManager.sharedInstance.fileExistWithID(flickrPhoto.ID) {
+                flickrPhoto.localImageUrl = URLBuilder.localFlickrURL(withId: flickrPhoto.ID)
                 flickrPhoto.state = FlickrPhotoState.Downloaded
             }
             return flickrPhoto
@@ -58,7 +56,7 @@ class FlickrPhotosAPI: NSObject {
     func saveFlickrPhoto (photo: FlickrPhoto, withImageData imageData: NSData?, indexPath: NSIndexPath) {
         if let imageData = imageData {
             do {
-                let storedUrl = try TemporaryFileManager.sharedInstance.writeSynchronousTemporaryFile(imageData, title: photo.ID + Constants.fpImageExtension)
+                let storedUrl = try TemporaryFileManager.sharedInstance.writeSynchronousTemporaryFile(imageData, title: photo.ID)
                 photo.localImageUrl = storedUrl
             } catch (let error) {
                 print(error)

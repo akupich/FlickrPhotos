@@ -17,7 +17,7 @@ class PendingOperations {
     lazy var downloadQueue:NSOperationQueue = {
         var queue = NSOperationQueue()
         queue.name = "Download queue"
-        queue.maxConcurrentOperationCount = 1
+        queue.maxConcurrentOperationCount = 10
         return queue
     }()
 }
@@ -39,7 +39,7 @@ class ImageDownloader: NSOperation {
         }
         
         if let size = imageSize {
-            flickrPhoto.url = NSURL(string: "\(Constants.flickrServerURL)/\(Int(size.width))/\(Int(size.height))/\(indexPath.row)")!
+            flickrPhoto.url = URLBuilder.remoteFlickrURL(withId: "\(indexPath.row)", size: size)
         }
         let imageData = FlickrPhotosAPI.remoteImageSyncForFlickrPhoto(flickrPhoto)
         
@@ -47,12 +47,10 @@ class ImageDownloader: NSOperation {
             return
         }
         
-        if imageData?.length > 0 {
+        if let data = imageData where UIImage(data: data) != nil {
             self.flickrPhoto.state = .Downloaded
-        }
-        else {
+        } else {
             self.flickrPhoto.state = .Failed
-            self.flickrPhoto.title = "Failed to load"
         }
         
         FlickrPhotosAPI.sharedInstance.saveFlickrPhoto(flickrPhoto, withImageData: imageData, indexPath: indexPath)

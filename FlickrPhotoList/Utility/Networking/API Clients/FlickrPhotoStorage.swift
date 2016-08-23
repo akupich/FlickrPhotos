@@ -27,7 +27,11 @@ class FlickrPhotoStorage {
         return flickrPhotos
     }
     
-    func clearAllPhotos () {
+    func clearAllPhotos (clearStoredFiles clearStoredFiles:Bool) {
         flickrPhotos.removeAll()
+        
+        if clearStoredFiles {
+            TemporaryFileManager.sharedInstance.deleteTemporaryFiles(nil)
+        }
     }
 }

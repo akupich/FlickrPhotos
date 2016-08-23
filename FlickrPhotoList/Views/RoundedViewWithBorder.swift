@@ -15,6 +15,8 @@ class RoundedViewWithBorder: UIView {
         }
     }
     
+    //** According to requirements it was done using CoreGraphics, 
+    //   but exist much easier way to do it without CoreGraphics
     override func drawRect(rect: CGRect) {
         // set the background image
         image?.drawInRect(self.bounds)

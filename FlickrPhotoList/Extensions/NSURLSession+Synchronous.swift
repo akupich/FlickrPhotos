@@ -19,7 +19,7 @@ public extension NSURLSession {
         let task = NSURLSession.sharedSession().dataTaskWithRequest(request, completionHandler: {
             taskData, _, error -> () in
             data = taskData
-            if data == nil, let error = error {print(error)}
+            if data == nil, let error = error {print(error.localizedDescription)}
             dispatch_semaphore_signal(semaphore);
         })
         task.resume()
